@@ -1,0 +1,39 @@
+services:
+  db:
+    container_name: star_burger_db
+    image: postgres:12.0-alpine
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    env_file: .env
+    restart: always
+
+  web:
+    container_name: star_burger_web
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+      - ./static:/app/staticfiles
+      - ./media:/app/media
+      - ./bundles:/app/bundles
+    command: bash -c "python manage.py collectstatic --no-input && python manage.py migrate && python -m gunicorn -b 0.0.0.0:8080 star_burger.wsgi:application"
+    ports:
+      - "8080:8080"
+    env_file: .env
+    depends_on:
+      - db
+      - frontend
+  frontend:
+    container_name: star_burger_frontend
+    build:
+      context: ./frontend
+    command: node_modules/.bin/parcel watch bundles-src/index.js --dist-dir bundles --public-url="./"
+    volumes:
+      - ./frontend/bundles-src/:/frontend/bundles-src/
+      - ./bundles:/frontend/bundles
+    restart: always  
+
+volumes:
+  db_data:
+  bundles:
+  media:
