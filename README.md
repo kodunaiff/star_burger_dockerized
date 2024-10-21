@@ -13,6 +13,115 @@
 
 Третий интерфейс — это админка. Преимущественно им пользуются программисты при разработке сайта. Также сюда заходит менеджер, чтобы обновить меню ресторанов Star Burger.
 
+## Работа с Докером
+
+## Как запустить dev-версию сайта с помощью Докера
+
+Скачайте код:
+
+```
+git clone https://github.com/kodunaiff/star_burger_dockerized.git
+```
+Перейдите в каталог проекта:
+
+```
+cd star_burger_dockerized
+```
+
+В корне проекта создайте файл .env, заменив "test" на свои значения:
+
+```
+SECRET_KEY=test
+YANDEX_API_KEY =test
+ROLLBAR_TOKEN =test
+DEBUG = False
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=test
+POSTGRES_DB=star_burger
+POSTGRES_HOST=db
+```
+
+Запустите образы, создайте суперпользователя:
+```
+docker-compose -f docker-compose.develop.yml up -d
+
+docker-compose -f docker-compose.develop.yml down (если нужно прекратить работу)
+
+docker exec -it star_burger_web python manage.py createsuperuser
+
+docker exec -it star_burger_web /bin/bash  (войти в контейнер в режиме bash)
+```
+
+Сайт будет доступен на [127.0.0.1:8080](http://127.0.0.1:8080/)
+
+
+## Как запустить prod-версию сайта с помощью Докера
+
+Скачайте код в директорию '/opt':
+
+```
+git clone https://github.com/kodunaiff/star_burger_dockerized.git
+```
+Перейдите в каталог проекта, там создайте файл .env:
+
+```
+cd star_burger_dockerized
+nano .env
+```
+
+Запустите образы, создайте суперпользователя:
+
+```
+docker-compose -f docker-compose.prod.yml up -d
+docker exec -it star_burger_web python manage.py createsuperuser
+```
+
+Установите и настройте nginx:
+
+Создайте файл с настройками 
+```
+cd /etc/nginx/sites-enabled/
+nano starburgernginx
+```
+
+Пример содержимого файла:
+
+```
+server {
+  listen 80;
+  listen [::]:80;
+  location / {
+    include '/etc/nginx/proxy_params';  # добавляем прокси-заголовки
+    proxy_pass http://127.0.0.1:8080/;
+  }
+  location /manager/ {  # настройки для запросов вида /api/...
+    include '/etc/nginx/proxy_params';
+    proxy_pass http://127.0.0.1:8080/manager/;  # ! Замените адрес на свой
+  }
+  location /api/ {  # настройки для запросов вида /api/...
+    include '/etc/nginx/proxy_params';
+    proxy_pass http://127.0.0.1:8080/api/;  # ! Замените адрес на свой
+  }
+  location /media/ {
+        alias /opt/star_burger_dockerized/media/;  # replace the path with yours one
+  }
+  location /static/ {  # обслуживаем файлы статики
+    alias /opt/star_burger_dockerized/static/;
+  }
+
+}
+```
+
+Перезапустите nginx
+```
+sudo systemctl restart nginx
+```
+
+Сайт будет доступен по адресу вашего сервера на порту 80
+
+## Скрипт deploy.sh
+Для упрощения процесса обновления кода на сервере можно использовать bash скрипт "deploy.sh"
+
 ## Как запустить dev-версию сайта
 
 Для запуска сайта нужно запустить **одновременно** бэкенд и фронтенд, в двух терминалах.
@@ -151,67 +260,7 @@ Parcel будет следить за файлами в каталоге `bundle
 - `YANDEX_API_KEY` — API ключ для подключения геокодера
 - `DB_URL` — настройки базы данных для PostgreSQL в формате URL
 
-## Деплойный скрипт
-Для упрощения процесса можно сделать bash скрипт для деплоя, который будет содержать в себе описанные выше процессы. Пример такого скрипта:
-````
-#! /usr/bin/bash
 
-set -e # обеспечивает завершение скрипта при ошибке
-
-cd /opt/star-burger/
-
-# Проверка, есть ли обновления в репозитории. Если обновлений нет, скрипт завершается
-
-git_result=$(git pull)
-if [[ "$git_result" == "Already up to date." ]]
-then
-	echo $git_result
-	exit 0
-fi
-
-source .venv/bin/activate
-
-pip install -r requirements.txt
-
-/bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=1024
-/sbin/mkswap /var/swap.1
-/sbin/swapon /var/swap.1
-
-npm ci --force # --force обеспечивает выполнение без взаимодействия с пользователем
-
-python manage.py migrate
-
-python manage.py collectstatic --noinput # --noinput для того же, для чего --force в npm ci
-
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
-
-# обновление автоматизированных сервисов Django и nginx сервера
-systemctl restart star-burger.service
-systemctl reload nginx.service
-
-# отключает эффект от /sbin/swapon, иначе он выдаёт ошибку при последующих запусках
-/sbin/swapoff /var/swap.1
-
-if [ -e ".env" ]; then
-    source .env
-fi
-
-GIT_HASH=$(git rev-parse --short HEAD)
-
-if [ -v ROLLBAR_TOKEN ]; then
-   curl -H "X-Rollbar-Access-Token: ${ROLLBAR_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -X POST 'https://api.rollbar.com/api/1/deploy' \
-        -d "{\"environment\": \"production\", \"revision\": \"${GIT_HASH}\", \
-        \"rollbar_name\": \"Kodu\", \"local_username\": \"$(whoami)\", \
-        \"comment\": \"deployment\", \"status\": \"succeeded\"}"
-   echo "Sended log to LOGBAR"
-fi
-
-
-echo Finished!
-
-````
 
 ## Цели проекта
 
