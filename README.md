@@ -22,7 +22,7 @@
 ```
 git clone https://github.com/kodunaiff/star_burger_dockerized.git
 ```
-Перейдите в каталог проекта:
+Далее вам следует перейти в каталог проекта:
 
 ```
 cd star_burger_dockerized
@@ -62,7 +62,7 @@ docker exec -it star_burger_web /bin/bash  (войти в контейнер в 
 ```
 git clone https://github.com/kodunaiff/star_burger_dockerized.git
 ```
-Перейдите в каталог проекта, там создайте файл .env:
+Далее вам следует перейти в каталог проекта, там создайте файл .env:
 
 ```
 cd star_burger_dockerized
@@ -120,7 +120,9 @@ sudo systemctl restart nginx
 Сайт будет доступен по адресу вашего сервера на порту 80
 
 ## Скрипт deploy.sh
+
 Для упрощения процесса обновления кода на сервере можно использовать bash скрипт "deploy.sh"
+
 
 ## Как запустить dev-версию сайта
 
