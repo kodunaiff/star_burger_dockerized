@@ -142,8 +142,8 @@ rollbar_token = env.str("ROLLBAR_TOKEN", None)
 
 ROLLBAR = {
     "access_token": rollbar_token,
-    "environment": env.str("ENVIRONMENT", "production"),
-    "branch": Repo(path=BASE_DIR).active_branch.name,
+    #"environment": env.str("ENVIRONMENT", "production"),
+    #"branch": Repo(path=BASE_DIR).active_branch.name,
     "code_version": "1.0",
     "root": BASE_DIR,
 }
